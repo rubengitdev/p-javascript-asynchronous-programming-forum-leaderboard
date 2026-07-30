@@ -41,4 +41,81 @@ const viewCount = (views) => {
     return views;
 };
 
-const forumCategory = (category) => {};
+const forumCategory = (id) => {
+    const selectedCategory = allCategories[id] || {
+        category: 'General',
+        className: 'general',
+    };
+
+    return `<a class="category ${selectedCategory.className}" href="${forumCategoryUrl}${selectedCategory.className}/${id}">${selectedCategory.category}</a>`;
+};
+
+const avatars = (posters, users) => {
+    return posters
+        .map((poster) => {
+            const user = users.find((u) => u.id === poster.user_id);
+            const template = user.avatar_template.replace('{size}', '30');
+            const src = template.startsWith('/')
+                ? avatarUrl + template
+                : template;
+
+            return `<img src="${src}" alt="${user.name}">`;
+        })
+        .join('');
+};
+
+const showLatestPosts = (data) => {
+    const { users, topic_list } = data;
+    const { topics } = topic_list;
+
+    const rows = topics
+        .map((topic) => {
+            const {
+                id,
+                title,
+                views,
+                posts_count,
+                slug,
+                posters,
+                category_id,
+                bumped_at,
+            } = topic;
+
+            return `
+                <tr>
+                    <td>
+                        <a
+                            class="post-title"
+                            href="${forumTopicUrl}${slug}/${id}"
+                            >${title}</a
+                        >
+                        ${forumCategory(category_id)}
+                    </td>
+                    <td>
+                        <div class="avatar-container">
+                            ${avatars(posters, users)}
+                        </div>
+                    </td>
+                    <td>${posts_count - 1}</td>
+                    <td>${views}</td>
+                    <td>${timeAgo(bumped_at)}</td>
+                </tr>
+            `;
+        })
+        .join('');
+
+    document.querySelector('#posts-container').innerHTML = rows;
+};
+
+let data = [];
+const fetchData = async () => {
+    try {
+        const res = await fetch(forumLatest);
+        data = await res.json();
+        showLatestPosts(data);
+    } catch (error) {
+        console.log('There was an error: ', error);
+    }
+};
+
+fetchData();
